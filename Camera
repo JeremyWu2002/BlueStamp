@@ -1,0 +1,14 @@
+from picamera import PiCamera
+from time import sleep
+import os
+
+camera = PiCamera()
+
+fileList = os.listdir('/home/pi/Pictures')
+number =  len(fileList)
+
+camera.rotation = 180
+camera.start_preview()
+sleep(5)
+camera.capture('/home/pi/Pictures/image%s.jpg' % number)
+camera.stop_preview()
