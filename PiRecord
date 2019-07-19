@@ -1,0 +1,17 @@
+
+from picamera import PiCamera
+from time import sleep
+import os
+
+camera = PiCamera()
+
+fileList = os.listdir('/home/pi/Downloads')
+number =  len(fileList)
+
+camera.rotation = 180
+camera.start_preview()
+camera.start_recording('/home/pi/Downloads/video%s.h264' % number)
+sleep(10)
+camera.stop_recording()
+camera.stop_preview()
+
