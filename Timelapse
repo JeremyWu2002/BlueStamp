@@ -1,0 +1,56 @@
+from PIL import Image
+from PIL import ImageFont
+from PIL import ImageDraw
+from subprocess import call
+import os
+import gps
+
+fontcolor = (0,0,0)
+counter = 0
+
+session = gps.gps("localhost", "2947")
+session.stream(gps.WATCH_ENABLE | gps.WATCH_NEWSTYLE)
+
+gpsSpeed = 0.0
+gpsLat = 0.0
+gpsLong = 0.0
+gpsAlt = 0.0
+while True:
+	try:
+		if counter == 50:
+			os.system('ls *.jpg > stills.txt')
+			os.system('mencoder -nosound -ovc lavc -lavcopts vcodec=mpeg4:aspect=16/9:vbitrate=8000000 -vf scale=1920:1080 -o timelapse.avi -mf type=jpeg:fps=5 mf://@stills.txt')
+			os.system('scp pi@10.31.64.71:/home/pi/pictures/timlapse.avi')
+			break
+		os.system('fswebcam -r 1280x720 --no-banner image%s.jpg' % counter)
+		report = session.next()
+		# Wait for a 'TPV' report and display the current time
+		# To see all report data, uncomment the line below
+		#print(report)
+		if report['class'] == 'TPV':
+			if hasattr(report, 'speed'):
+				gpsSpeed = report.speed * gps.MPS_TO_KPH
+			if hasattr(report, 'lat'):
+				gpsLat = report.lat
+			if hasattr(report, 'lon'):
+				gpsLong = report.lon
+			if hasattr(report, 'alt'):
+				gpsAlt = report.alt	
+		text = 'SPEED:'+str(gpsSpeed)+'LAT:' + str(gpsLat) + 'LONG:' + str(gpsLong) + 'ALT:' + str(gpsAlt)
+		num =0 
+		for k in os.listdir(os.getcwd()):
+			if k.endswith(".jpg"):
+				num = num +1
+				if num == (counter+1):
+					overlay = "/usr/bin/convert /home/pi/timelapse/image"+str(counter)+".jpg -pointsize 24 -fill black -annotate +30+640 "+text +" /home/pi/timelapse/image"+str(counter)+"_overlay.jpg"
+					call (overlay, shell=True) 
+					os.system('rm image%s.jpg' % counter)				
+		counter=counter + 1
+		text = ''
+	except KeyError:
+		pass
+	except KeyboardInterrupt:
+		quit()
+	except StopIteration:
+		session = None
+		print("GPSD has terminated")
